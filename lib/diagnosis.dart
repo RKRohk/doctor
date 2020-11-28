@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:doctor/models/medication.dart';
 import 'package:doctor/models/patient.dart';
@@ -15,15 +16,33 @@ class Diagnosis extends StatefulHookWidget {
 }
 
 class _DiagnosisState extends State<Diagnosis> {
+  Future<void> sendDiagnosis() async {
+    var selectedMedication = List<String>();
+    choice.asMap().forEach((key, value) {
+      if (value) selectedMedication.add(medicines[condition][key]);
+    });
+    var update = {"diagnosis": condition, "medication": selectedMedication};
+    var userDoc = await FirebaseFirestore.instance
+        .collection("details")
+        .where("name", isEqualTo: widget.patient.name)
+        .get();
+    await FirebaseFirestore.instance
+        .collection("details")
+        .doc(userDoc.docs.first.id)
+        .update(update);
+  }
+
   Future<String> fetchCondition() async {
     print(widget.patient.symptoms.map((e) => e.ID).toList().toString());
     try {
       var response = await Dio().get(DotEnv().env["API_URL"], queryParameters: {
-        "symptoms":
-            widget.patient.symptoms.map((e) => e.ID).toList().toString(),
+        "symptoms": "[9,10]",
+        // widget.patient.symptoms.map((e) => e.ID).toList().toString(),
         "gender": widget.patient.gender,
-        "year_of_birth": widget.patient.dob.toString(),
-        "token": DotEnv().env["key"],
+        "year_of_birth": "2000",
+        // "token": DotEnv().env["key"],
+        "token":
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InJrYWthcjIwMDBAZ21haWwuY29tIiwicm9sZSI6IlVzZXIiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9zaWQiOiI1NTI3IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy92ZXJzaW9uIjoiMTA5IiwiaHR0cDovL2V4YW1wbGUub3JnL2NsYWltcy9saW1pdCI6IjEwMCIsImh0dHA6Ly9leGFtcGxlLm9yZy9jbGFpbXMvbWVtYmVyc2hpcCI6IkJhc2ljIiwiaHR0cDovL2V4YW1wbGUub3JnL2NsYWltcy9sYW5ndWFnZSI6ImVuLWdiIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9leHBpcmF0aW9uIjoiMjA5OS0xMi0zMSIsImh0dHA6Ly9leGFtcGxlLm9yZy9jbGFpbXMvbWVtYmVyc2hpcHN0YXJ0IjoiMjAyMC0xMS0yMCIsImlzcyI6Imh0dHBzOi8vYXV0aHNlcnZpY2UucHJpYWlkLmNoIiwiYXVkIjoiaHR0cHM6Ly9oZWFsdGhzZXJ2aWNlLnByaWFpZC5jaCIsImV4cCI6MTYwNjYwMjYzMSwibmJmIjoxNjA2NTk1NDMxfQ.Nd-_sc0q59Ff4Hk4utfHsEb1WZ2IcnwJA-J09l3FIds",
         "format": "json",
         "language": "en-gb"
       });
@@ -48,6 +67,8 @@ class _DiagnosisState extends State<Diagnosis> {
 
   String condition = "";
 
+  List<bool> choice;
+
   getCondition() async {
     String res = await fetchCondition();
     setState(() {
@@ -59,6 +80,7 @@ class _DiagnosisState extends State<Diagnosis> {
   void initState() {
     // TODO: implement initState
     getCondition();
+    choice = List<bool>();
     super.initState();
   }
 
@@ -100,18 +122,20 @@ class _DiagnosisState extends State<Diagnosis> {
                   Text("Suggested Medication"),
                   Expanded(
                     child: medicines.containsKey(condition)
-                        ? ListView(
-                            children: medicines[condition].map((e) {
-                              bool value = false;
+                        ? ListView.builder(
+                            itemBuilder: (context, index) {
+                              choice.add(false);
+                              bool value = choice[index];
                               return CheckboxListTile(
                                   value: value,
                                   onChanged: (newVal) {
                                     setState(() {
-                                      value = newVal;
+                                      choice[index] = newVal;
                                     });
                                   },
-                                  title: Text(e));
-                            }).toList(),
+                                  title: Text(medicines[condition][index]));
+                            },
+                            itemCount: medicines[condition].length,
                           )
                         : Container(),
                   ),
@@ -122,7 +146,9 @@ class _DiagnosisState extends State<Diagnosis> {
               ),
             )),
             RaisedButton(
-              onPressed: () {},
+              onPressed: () async {
+                sendDiagnosis();
+              },
               child: Text("Send"),
             )
           ],

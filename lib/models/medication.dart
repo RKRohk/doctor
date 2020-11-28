@@ -51,3 +51,11 @@ final medicines = {
   'Tubal and ovarian inflammation': ['Ticarcillin Solution', 'Sumycin'],
   'Urinary tract infection': ['Bactrim', 'Monurol']
 };
+
+class Medication {
+  String disease;
+  List<String> medicines;
+  bool selected;
+
+  Medication({this.disease, this.medicines, this.selected});
+}

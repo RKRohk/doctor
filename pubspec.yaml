@@ -89,3 +89,4 @@ flutter:
 
   assets:
     - assets/images/splash_screen.png
+    - .env
